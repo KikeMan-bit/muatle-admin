@@ -1,26 +1,131 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* Components pulled from the shadcn registry ship `dark:` classes. Tailwind's
+   default `dark:` follows the OS setting, which would fire those classes on a
+   theme that has no dark tokens. Binding the variant to a `.dark` ancestor,
+   which this app never sets, keeps them inert until dark mode is designed. */
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-strong: var(--primary-strong);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-auth-from: var(--auth-from);
+  --color-auth-to: var(--auth-to);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-brand: var(--font-montserrat);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* The same neutral grey scale as the businesses' panel (muatle), so both
+   apps read as one product: the brand is the logo's black, cards stand apart
+   by a hairline border, and status is told by a dot and a word, never by a
+   wash of color. Contrast ratios are measured against the surface each token
+   sits on. */
+:root {
+  --radius: 0.5rem;
+  --background: #fafafa;
+  --foreground: #171717; /* 16.1:1 on card */
+  --card: #ffffff;
+  --card-foreground: #171717;
+  --popover: #ffffff;
+  --popover-foreground: #171717;
+  --primary: #171717;
+  --primary-foreground: #ffffff;
+  --primary-strong: #171717;
+  --secondary: #fafafa;
+  --secondary-foreground: #171717;
+  --muted: #f5f5f5;
+  --muted-foreground: #6b6b6b; /* 5.33:1 on card, 4.84:1 on the background */
+  --accent: #f5f5f5;
+  --accent-foreground: #171717;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: #e5e5e5;
+  --input: #e5e5e5;
+  --ring: #737373; /* 4.74:1 on white */
+  --chart-1: #1d4ed8;
+  --chart-2: #ce7700;
+  --chart-3: #be185d;
+  --chart-4: #701fc7;
+  --chart-5: #1b7a4d;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #171717;
+  --sidebar-border: #e5e5e5;
+  --sidebar-accent: #f5f5f5;
+  --sidebar-accent-foreground: #171717;
+  --auth-from: #fafafa;
+  --auth-to: #f0f0f0;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
   }
-}
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  /* Chrome paints autofill with its own pale yellow and eats the input style;
+     it has to be forced back against the tokens so it does not drift from the
+     theme. */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 1000px var(--card) inset !important;
+    -webkit-text-fill-color: var(--foreground) !important;
+    caret-color: var(--foreground) !important;
+  }
+
+  /* Thin grey scrollbars everywhere (dialogs, lists with max-h): the
+     system's broke the tone of the rest. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #d4d4d4 transparent;
+  }
+
+  /* The toasts are neutral; only the description steps back to grey so the
+     title leads. */
+  [data-sonner-toast] [data-description] {
+    color: var(--muted-foreground) !important;
+  }
 }
