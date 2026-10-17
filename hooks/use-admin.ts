@@ -43,6 +43,7 @@ export const keys = {
   account: (id: string | number) => ["account", String(id)] as const,
   countries: ["countries"] as const,
   industries: ["industries"] as const,
+  coupons: ["coupons"] as const,
 };
 
 export function useMe() {
@@ -118,6 +119,11 @@ export function useCountries() {
     enabled: !!token,
     staleTime: 5 * 60_000,
   });
+}
+
+export function useCoupons() {
+  const token = useToken();
+  return useQuery({ queryKey: keys.coupons, queryFn: () => guarded(api.listCoupons(token)), enabled: !!token });
 }
 
 export function useIndustries() {
@@ -238,6 +244,22 @@ export function useUpdateIndustry(options?: Mutation<api.Industry, { id: number 
   return useChange(
     (token, { id, ...changes }) => api.updateIndustry(token, id, changes),
     { invalidate: () => [keys.industries], success: "Rubro actualizado." },
+    options,
+  );
+}
+
+export function useCreateCoupon(options?: Mutation<api.Coupon, api.CouponInput>) {
+  return useChange(
+    (token, input) => api.createCoupon(token, input),
+    { invalidate: () => [keys.coupons], success: (coupon) => `Cupón ${coupon.code} creado.` },
+    options,
+  );
+}
+
+export function useUpdateCoupon(options?: Mutation<api.Coupon, { id: number } & api.CouponInput>) {
+  return useChange(
+    (token, { id, ...changes }) => api.updateCoupon(token, id, changes),
+    { invalidate: () => [keys.coupons], success: "Cupón actualizado." },
     options,
   );
 }

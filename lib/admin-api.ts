@@ -197,6 +197,35 @@ export type PlanOption = { id: string; name: string; price: number };
 export type Country = { id: number; name: string; code: string | null; is_active: boolean };
 export type Industry = { id: number; name: string; is_active: boolean };
 
+/** A percentage off, or bolivianos off the total. */
+export type CouponKind = "percent" | "amount";
+
+/** A discount coupon for the panel's checkout (business/coupons.py), with the payments paid with it. */
+export type Coupon = {
+  id: number;
+  code: string;
+  kind: CouponKind;
+  /** "30.00": the percentage, or the bolivianos. */
+  value: string;
+  /** The plans it is good for; empty, all of them. */
+  plans: string[];
+  /** The ways of paying it is good for; empty, both. */
+  billings: ("monthly" | "yearly")[];
+  /** Its last day ("2026-10-31"); null, it does not expire. */
+  expires_on: string | null;
+  /** Payments it can take off, all businesses together; null, no limit. */
+  max_uses: number | null;
+  once_per_business: boolean;
+  is_active: boolean;
+  note: string;
+  /** Payments paid with it; a QR made and never paid is none. */
+  uses: number;
+  created_at: string;
+};
+
+/** What the team writes of a coupon; the code only when making it, and blank for one made up. */
+export type CouponInput = Partial<Omit<Coupon, "id" | "uses" | "created_at">>;
+
 export type BusinessListParams = {
   page?: number;
   page_size?: number;
@@ -299,3 +328,11 @@ export const createIndustry = (token: string, input: { name: string }) =>
 
 export const updateIndustry = (token: string, id: number, changes: Partial<Omit<Industry, "id">>) =>
   apiRequest<Industry>(`${ADMIN}/industries/${id}/`, { method: "PATCH", body: changes, token });
+
+export const listCoupons = (token: string) => apiRequest<Coupon[]>(`${ADMIN}/coupons/`, { token });
+
+export const createCoupon = (token: string, input: CouponInput) =>
+  apiRequest<Coupon>(`${ADMIN}/coupons/`, { method: "POST", body: input, token });
+
+export const updateCoupon = (token: string, id: number, changes: CouponInput) =>
+  apiRequest<Coupon>(`${ADMIN}/coupons/${id}/`, { method: "PATCH", body: changes, token });
