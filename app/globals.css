@@ -42,7 +42,6 @@
   --color-auth-to: var(--auth-to);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --font-brand: var(--font-montserrat);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -50,10 +49,10 @@
 }
 
 /* The same neutral grey scale as the businesses' panel (muatle), so both
-   apps read as one product: the brand is the logo's black, cards stand apart
-   by a hairline border, and status is told by a dot and a word, never by a
-   wash of color. Contrast ratios are measured against the surface each token
-   sits on. */
+   apps read as one product: the brand color is black, beside the orange
+   logo, cards stand apart by a hairline border, and status is told by a dot
+   and a word, never by a wash of color. Contrast ratios are measured against
+   the surface each token sits on. */
 :root {
   --radius: 0.5rem;
   --background: #fafafa;
