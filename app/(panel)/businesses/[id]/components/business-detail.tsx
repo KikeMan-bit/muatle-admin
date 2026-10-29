@@ -20,7 +20,7 @@ import type { BranchData, BusinessDetail as BusinessData, DeviceData, MemberData
 import { errorMessage } from "@/lib/api";
 import { countryName } from "@/lib/countries";
 import { currencyLabel } from "@/lib/currencies";
-import { referralSources } from "@/lib/partners";
+import { partnerDiscountLabel, referralSources } from "@/lib/partners";
 import { CHIP_PLAIN } from "@/lib/plans";
 import { rolesLabel } from "@/lib/roles";
 import { cn, daysLabel, formatBs, formatCount, formatDate, formatDateTime, formatLongDate } from "@/lib/utils";
@@ -276,6 +276,9 @@ function BusinessDetail({ id }: { id: string }) {
                     <span className="text-xs text-muted-foreground">
                       {referralSources[business.partner.source]} · {formatDate(business.partner.referred_at)}
                     </span>
+                    {business.plan.partner_discount ? (
+                      <span className="text-xs text-muted-foreground">{partnerDiscountLabel(business.plan.partner_discount)}</span>
+                    ) : null}
                   </span>
                 ) : (
                   <span className="text-muted-foreground">Ningún aliado</span>

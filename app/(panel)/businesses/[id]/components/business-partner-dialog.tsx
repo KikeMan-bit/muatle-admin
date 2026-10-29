@@ -14,9 +14,9 @@ import { errorMessage } from "@/lib/api";
 
 /**
  * "Aliado": who brought the business, set by hand for one that signed up
- * without the ally's link or code, or corrected. Commissions only come from
- * the payments it makes from then on; the ones already earned stay with
- * whoever earned them.
+ * without the ally's link or code, or corrected. The ally's discount and
+ * their commissions only come with the payments it makes from then on; the
+ * commissions already earned stay with whoever earned them.
  */
 function BusinessPartnerDialog({ business, open, onOpenChange }: { business: BusinessDetail; open: boolean; onOpenChange: (open: boolean) => void }) {
   const options = usePartnerOptions({ enabled: open });
@@ -38,8 +38,9 @@ function BusinessPartnerDialog({ business, open, onOpenChange }: { business: Bus
           <DialogHeader>
             <DialogTitle>Aliado de {business.name}</DialogTitle>
             <DialogDescription>
-              Para un negocio que se registró sin el enlace ni el código de quien lo trajo. Las comisiones salen solo de
-              los pagos que haga desde ahora: las que ya se ganaron se quedan con quien las ganó.
+              Para un negocio que se registró sin el enlace ni el código de quien lo trajo. Desde su próximo pago, el
+              negocio tiene el descuento del aliado y el aliado gana su comisión: las comisiones ya ganadas se quedan con
+              quien las ganó.
             </DialogDescription>
           </DialogHeader>
 

@@ -120,6 +120,12 @@ export type PlanData = {
     automatic_inventory: boolean;
   };
   usage: { menu_orders: number; table_orders: number; since: string } | null;
+  /**
+   * What the ally who brought the business takes off its plan, while it
+   * lasts: "10.00" for its paid months left, or null for always. Null without
+   * one; absent from a backend from before the discount.
+   */
+  partner_discount?: { name: string; percent: string; months_left: number | null } | null;
 };
 
 export type BranchData = {
@@ -247,9 +253,11 @@ export type CouponInput = Partial<Omit<Coupon, "id" | "uses" | "created_at">>;
 
 /**
  * A deal: the share of each payment ("20.00", from 0 to 100) and how many
- * paid months of each business earn it; null, all of them, always.
+ * paid months of each business earn it; null, all of them, always. And what
+ * the businesses the ally brings get off their plan for those months
+ * ("10.00"), absent from a backend from before the discount.
  */
-export type Deal = { percent: string; months: number | null };
+export type Deal = { percent: string; months: number | null; discount?: string };
 
 /** The general deal every ally without one of their own earns by (partners.Program). */
 export type PartnerProgram = Deal & { updated_at: string; updated_by: string | null };
@@ -377,6 +385,8 @@ export type PartnerInput = {
   own_commission?: boolean;
   percent?: string;
   months?: number | null;
+  /** Left out of a deal of their own, the general one's. */
+  discount?: string;
   note?: string;
 };
 

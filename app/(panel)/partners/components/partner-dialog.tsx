@@ -16,7 +16,7 @@ import { errorMessage } from "@/lib/api";
 import { dealLabel } from "@/lib/partners";
 import { cn, personName } from "@/lib/utils";
 
-import { DealFields, dealInput, dealValues, validateDeal, type DealValues } from "./deal-fields";
+import { DealFields, dealInput, dealValues, typedPercent, validateDeal, type DealValues } from "./deal-fields";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // As the backend takes them (partners.referrals.CODE_FORMAT)
@@ -33,7 +33,7 @@ type Values = {
   note: string;
 };
 
-type Errors = Partial<Record<"email" | "first_name" | "code" | "percent" | "months", string>>;
+type Errors = Partial<Record<"email" | "first_name" | "code" | "percent" | "months" | "discount", string>>;
 
 function validate(values: Values, creating: boolean): Errors {
   const errors: Errors = {};
@@ -97,6 +97,14 @@ function PartnerDialog({ partner, open, onOpenChange }: { partner?: PartnerDetai
   const codeLocked = !!partner && partner.businesses > 0;
 
   const set = <K extends keyof Values>(field: K, value: Values[K]) => setValues((prev) => ({ ...prev, [field]: value }));
+  // A deal of their own starts from the general discount, to change or take to 0
+  const chooseDeal = (own: boolean) =>
+    setValues((prev) => {
+      if (!own || prev.deal.discount) return { ...prev, own };
+      let discount: string | null = "";
+      if (program.data) discount = program.data.discount === undefined ? null : typedPercent(program.data.discount);
+      return { ...prev, own, deal: { ...prev.deal, discount } };
+    });
   const local = submitted ? validate(values, creating) : {};
   const errors: Errors = {
     email: local.email ?? fieldError(mutation.error, "email"),
@@ -104,6 +112,7 @@ function PartnerDialog({ partner, open, onOpenChange }: { partner?: PartnerDetai
     code: local.code ?? fieldError(mutation.error, "code"),
     percent: local.percent ?? fieldError(mutation.error, "percent"),
     months: local.months ?? fieldError(mutation.error, "months"),
+    discount: local.discount ?? fieldError(mutation.error, "discount"),
   };
   const anyFieldError = Object.values(errors).some(Boolean);
 
@@ -135,7 +144,7 @@ function PartnerDialog({ partner, open, onOpenChange }: { partner?: PartnerDetai
             <DialogTitle>{partner ? `Editar a ${personName(partner)}` : "Nuevo aliado"}</DialogTitle>
             <DialogDescription>
               {partner
-                ? "Un cambio de comisión vale desde el próximo pago de sus negocios: lo que ya ganó no cambia."
+                ? "Un cambio de comisión o de descuento vale desde el próximo pago de sus negocios: lo que ya ganó no cambia."
                 : "Le llega un correo para crear su contraseña y entrar a su panel de aliado. Su cuenta es solo de aliado: no puede ser la de un negocio."}
             </DialogDescription>
           </DialogHeader>
@@ -215,7 +224,7 @@ function PartnerDialog({ partner, open, onOpenChange }: { partner?: PartnerDetai
                   name: "La general",
                   description: program.data ? dealLabel(program.data) : "La que ganan todos los aliados.",
                 },
-                { own: true, name: "Una propia", description: "Otro porcentaje u otro plazo, solo para este aliado." },
+                { own: true, name: "Una propia", description: "Otro porcentaje, plazo o descuento, solo para este aliado." },
               ] as const
             ).map((option) => {
               const selected = option.own === values.own;
@@ -227,7 +236,7 @@ function PartnerDialog({ partner, open, onOpenChange }: { partner?: PartnerDetai
                     selected ? "border-primary bg-primary/4" : "border-border hover:bg-muted",
                   )}
                 >
-                  <input type="radio" name="partner-deal" checked={selected} onChange={() => set("own", option.own)} className="sr-only" />
+                  <input type="radio" name="partner-deal" checked={selected} onChange={() => chooseDeal(option.own)} className="sr-only" />
                   <span className={cn("mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border", selected ? "border-primary bg-primary text-primary-foreground" : "border-input")}>
                     {selected ? <Check className="size-3" /> : null}
                   </span>

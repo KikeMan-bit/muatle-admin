@@ -139,7 +139,7 @@ function Coupons() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Cupones"
-        description="Descuentos que el dueño de un negocio escribe al pagar su plan. Un uso es un pago completado: un QR generado y nunca pagado no gasta ninguno."
+        description="Descuentos que el dueño de un negocio escribe al pagar su plan. Un uso es un pago completado: un QR generado y nunca pagado no gasta ninguno. Un cupón no se suma al descuento de un aliado: se usa el mayor de los dos."
       />
       <section className="flex flex-col gap-3">
         <div className="flex items-center justify-between gap-2">

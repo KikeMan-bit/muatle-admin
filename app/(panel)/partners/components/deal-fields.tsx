@@ -8,35 +8,61 @@ import { Input } from "@/components/ui/input";
 import type { Deal } from "@/lib/admin-api";
 import { cn } from "@/lib/utils";
 
-/** A deal as its fields hold it: the share as typed, and its months or "always". */
-export type DealValues = { percent: string; months: string; forever: boolean };
+/**
+ * A deal as its fields hold it: the share and the business's discount as
+ * typed, and its months or "always". The discount is null when the backend
+ * knows of none yet: no field, and nothing sent.
+ */
+export type DealValues = { percent: string; months: string; forever: boolean; discount: string | null };
 
-export type DealErrors = { percent?: string; months?: string };
+export type DealErrors = { percent?: string; months?: string; discount?: string };
 
 // A deal no one wrote yet starts at a year, the usual length of these programs
 const DEFAULT_MONTHS = "12";
 const MAX_MONTHS = 120;
 
+/** "10" for the "10.00" the backend keeps: a percentage as the field shows it. */
+export function typedPercent(value: string): string {
+  return String(Number(value));
+}
+
 export function dealValues(deal: Deal | null | undefined): DealValues {
-  if (!deal) return { percent: "", months: DEFAULT_MONTHS, forever: false };
+  if (!deal) return { percent: "", months: DEFAULT_MONTHS, forever: false, discount: "" };
   return {
-    percent: String(Number(deal.percent)),
+    percent: typedPercent(deal.percent),
     months: deal.months === null ? DEFAULT_MONTHS : String(deal.months),
     forever: deal.months === null,
+    discount: deal.discount === undefined ? null : typedPercent(deal.discount),
   };
 }
 
-/** What the backend takes: the share with a dot ("12.5"), and the months or null for always. */
+/** A percentage as typed, as the backend takes it: with a dot ("12.5"). */
+function withDot(value: string): string {
+  return value.trim().replace(",", ".");
+}
+
+/** What the backend takes: the share and the discount with a dot ("12.5"), and the months or null for always. */
 export function dealInput(values: DealValues): Deal {
-  return { percent: values.percent.trim().replace(",", "."), months: values.forever ? null : Number(values.months) };
+  const deal: Deal = { percent: withDot(values.percent), months: values.forever ? null : Number(values.months) };
+  if (values.discount !== null) deal.discount = withDot(values.discount);
+  return deal;
+}
+
+/** What is wrong with a percentage as typed, if anything. */
+function percentProblem(value: string, missing: string): string | undefined {
+  const percent = withDot(value);
+  if (!percent) return missing;
+  if (!/^\d+(\.\d{1,2})?$/.test(percent)) return "Escribe un número, con hasta 2 decimales.";
+  if (Number(percent) > 100) return "Un porcentaje llega hasta 100.";
+  return undefined;
 }
 
 export function validateDeal(values: DealValues): DealErrors {
   const errors: DealErrors = {};
-  const percent = values.percent.trim().replace(",", ".");
-  if (!percent) errors.percent = "Escribe el porcentaje.";
-  else if (!/^\d+(\.\d{1,2})?$/.test(percent)) errors.percent = "Escribe un número, con hasta 2 decimales.";
-  else if (Number(percent) > 100) errors.percent = "Un porcentaje llega hasta 100.";
+  const percent = percentProblem(values.percent, "Escribe el porcentaje.");
+  if (percent) errors.percent = percent;
+  const discount = values.discount === null ? undefined : percentProblem(values.discount, "Escribe el descuento: 0 si no tiene.");
+  if (discount) errors.discount = discount;
   if (!values.forever) {
     const months = Number(values.months);
     if (!Number.isInteger(months) || months < 1) errors.months = "Pon al menos 1 mes, o elige «Siempre».";
@@ -74,8 +100,9 @@ function Choice({
 }
 
 /**
- * The share of each payment and the paid months of each business that earn
- * it, or always: how the general deal and an ally's own are written.
+ * The share of each payment, the paid months of each business that earn it,
+ * or always, and what the business gets off its plan for those months: how
+ * the general deal and an ally's own are written.
  */
 function DealFields({
   idPrefix,
@@ -93,7 +120,7 @@ function DealFields({
       <Field
         htmlFor={`${idPrefix}-percent`}
         label="Porcentaje de cada pago"
-        hint="Sobre lo que el negocio pagó de verdad: si usó un cupón, sobre el monto con el descuento."
+        hint="Sobre lo que el negocio pagó de verdad, ya restado su descuento o su cupón."
       >
         <div className="flex items-center gap-2">
           <Input
@@ -138,6 +165,29 @@ function DealFields({
         <p className="text-xs text-muted-foreground">Un pago mensual cuenta 1 mes; uno anual, 12.</p>
         <FieldError id={`${idPrefix}-months-error`}>{errors.months}</FieldError>
       </fieldset>
+
+      {values.discount === null ? null : (
+        <Field
+          htmlFor={`${idPrefix}-discount`}
+          label="Descuento para el negocio"
+          hint="Lo que paga de menos un negocio que llegó con un aliado, durante los mismos meses en que el aliado gana comisión. Con 0, no tiene descuento."
+        >
+          <div className="flex items-center gap-2">
+            <Input
+              id={`${idPrefix}-discount`}
+              inputMode="decimal"
+              value={values.discount}
+              onChange={(e) => onChange({ discount: e.target.value })}
+              placeholder="10"
+              className="h-10 w-28 tabular-nums"
+              aria-invalid={!!errors.discount}
+              aria-describedby={errors.discount ? `${idPrefix}-discount-error` : undefined}
+            />
+            <span className="text-sm text-muted-foreground">% menos en su plan</span>
+          </div>
+          <FieldError id={`${idPrefix}-discount-error`}>{errors.discount}</FieldError>
+        </Field>
+      )}
     </div>
   );
 }

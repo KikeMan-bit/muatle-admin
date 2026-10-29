@@ -13,9 +13,10 @@ import { errorMessage } from "@/lib/api";
 import { DealFields, dealInput, dealValues, validateDeal } from "./deal-fields";
 
 /**
- * "Comisión general": what every ally without a deal of their own earns. A
- * change counts from each business's next payment; commissions already earned
- * keep the share they were worked out with.
+ * "Comisión general": what every ally without a deal of their own earns, and
+ * what the businesses they bring get off. A change counts from each business's
+ * next payment; commissions already earned keep the share they were worked
+ * out with.
  */
 function ProgramDialog({ program, open, onOpenChange }: { program: PartnerProgram; open: boolean; onOpenChange: (open: boolean) => void }) {
   const [values, setValues] = React.useState(() => dealValues(program));
@@ -26,6 +27,7 @@ function ProgramDialog({ program, open, onOpenChange }: { program: PartnerProgra
   const errors = {
     percent: local.percent ?? fieldError(update.error, "percent"),
     months: local.months ?? fieldError(update.error, "months"),
+    discount: local.discount ?? fieldError(update.error, "discount"),
   };
 
   const submit = (e: React.FormEvent) => {
@@ -42,14 +44,14 @@ function ProgramDialog({ program, open, onOpenChange }: { program: PartnerProgra
           <DialogHeader>
             <DialogTitle>Comisión general</DialogTitle>
             <DialogDescription>
-              La ganan los aliados que no tienen una comisión propia. Vale desde el próximo pago de cada negocio: las
-              comisiones ya ganadas no cambian.
+              La ganan los aliados que no tienen una comisión propia, y el descuento es para los negocios que traen. Vale
+              desde el próximo pago de cada negocio: las comisiones ya ganadas no cambian.
             </DialogDescription>
           </DialogHeader>
 
           <DealFields idPrefix="program" values={values} onChange={(changes) => setValues((prev) => ({ ...prev, ...changes }))} errors={errors} />
 
-          {update.isError && !errors.percent && !errors.months ? (
+          {update.isError && !errors.percent && !errors.months && !errors.discount ? (
             <Alert variant="destructive">
               <AlertDescription>{errorMessage(update.error)}</AlertDescription>
             </Alert>

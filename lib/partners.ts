@@ -1,4 +1,4 @@
-import type { CommissionStatus, Deal, ReferralSource, ReferralState } from "@/lib/admin-api";
+import type { CommissionStatus, Deal, PlanData, ReferralSource, ReferralState } from "@/lib/admin-api";
 
 /** "20 %", "12,5 %": a deal's share as the backend keeps it ("20.00"). */
 export function percentLabel(percent: string | null): string {
@@ -12,16 +12,37 @@ export function monthsLabel(months: number | null): string {
   return `${months} ${months === 1 ? "mes" : "meses"}`;
 }
 
-/** "20 % · 12 meses", "30 % · siempre": a deal in the few words a table has room for. */
-export function dealShort(deal: Deal): string {
-  return `${percentLabel(deal.percent)} · ${monthsLabel(deal.months)}`;
+/** "10 % de descuento", or null for a deal that gives none (or a backend from before the discount). */
+export function discountLabel(discount: string | undefined): string | null {
+  if (!discount || Number(discount) <= 0) return null;
+  return `${percentLabel(discount)} de descuento`;
 }
 
-/** "20 % de cada pago · primeros 12 meses pagados", or "· siempre": a deal as a sentence says it. */
+/** "20 % · 12 meses · 10 % de descuento", "30 % · siempre": a deal in the few words a table has room for. */
+export function dealShort(deal: Deal): string {
+  return [percentLabel(deal.percent), monthsLabel(deal.months), discountLabel(deal.discount)].filter(Boolean).join(" · ");
+}
+
+/**
+ * "20 % de cada pago · primeros 12 meses pagados · 10 % de descuento para el
+ * negocio", or "· siempre", and nothing of a discount for a deal with none: a
+ * deal as a sentence says it.
+ */
 export function dealLabel(deal: Deal): string {
   const months =
     deal.months === null ? "siempre" : deal.months === 1 ? "primer mes pagado" : `primeros ${deal.months} meses pagados`;
-  return `${percentLabel(deal.percent)} de cada pago · ${months}`;
+  const discount = discountLabel(deal.discount);
+  return `${percentLabel(deal.percent)} de cada pago · ${months}${discount ? ` · ${discount} para el negocio` : ""}`;
+}
+
+/**
+ * "10 % de descuento en su plan por 9 meses pagados más", or ", siempre": what
+ * a business an ally brought still gets off.
+ */
+export function partnerDiscountLabel(offer: NonNullable<PlanData["partner_discount"]>): string {
+  const discount = `${percentLabel(offer.percent)} de descuento en su plan`;
+  if (offer.months_left === null) return `${discount}, siempre`;
+  return `${discount} por ${offer.months_left} ${offer.months_left === 1 ? "mes pagado" : "meses pagados"} más`;
 }
 
 /** "3 de 12 meses", or "3 meses (siempre)": the paid months of a business that earned its ally. */
