@@ -86,6 +86,17 @@ export function formatBs(value: number | null | undefined): string {
   return `${value.toLocaleString("es-BO")} Bs`;
 }
 
+/**
+ * "422,40 Bs", "44 Bs": an amount as the backend sends it, with its cents
+ * ("422.40"); the cents show only when there are some.
+ */
+export function formatAmount(value: string | number | null | undefined): string {
+  if (value === null || value === undefined || value === "") return "—";
+  const amount = Number(value);
+  const cents = Number.isInteger(amount) ? 0 : 2;
+  return `${amount.toLocaleString("es-BO", { minimumFractionDigits: cents, maximumFractionDigits: 2 })} Bs`;
+}
+
 /** "Ana Pérez", or the email when there is no name. */
 export function personName(
   person: { first_name?: string | null; last_name?: string | null; email?: string | null } | null | undefined,

@@ -44,6 +44,10 @@ export const keys = {
   countries: ["countries"] as const,
   industries: ["industries"] as const,
   coupons: ["coupons"] as const,
+  partnerProgram: ["partner-program"] as const,
+  partners: (params?: api.PartnerListParams) => ["partners", params ?? {}] as const,
+  partner: (id: string | number) => ["partner", String(id)] as const,
+  partnerOptions: ["partner-options"] as const,
 };
 
 export function useMe() {
@@ -133,6 +137,40 @@ export function useIndustries() {
     queryFn: () => guarded(api.listIndustries(token)),
     enabled: !!token,
     staleTime: 5 * 60_000,
+  });
+}
+
+export function usePartnerProgram() {
+  const token = useToken();
+  return useQuery({ queryKey: keys.partnerProgram, queryFn: () => guarded(api.getPartnerProgram(token)), enabled: !!token });
+}
+
+export function usePartners(params: api.PartnerListParams) {
+  const token = useToken();
+  return useQuery({
+    queryKey: keys.partners(params),
+    queryFn: () => guarded(api.listPartners(token, params)),
+    enabled: !!token,
+    placeholderData: (previous) => previous,
+  });
+}
+
+export function usePartner(id: string | number) {
+  const token = useToken();
+  return useQuery({
+    queryKey: keys.partner(id),
+    queryFn: () => guarded(api.getPartner(token, id)),
+    enabled: !!token,
+  });
+}
+
+/** Every ally, for picking the one who brought a business; only read once that dialog opens. */
+export function usePartnerOptions({ enabled = true }: { enabled?: boolean } = {}) {
+  const token = useToken();
+  return useQuery({
+    queryKey: keys.partnerOptions,
+    queryFn: () => guarded(api.listPartnerOptions(token)),
+    enabled: !!token && enabled,
   });
 }
 
@@ -260,6 +298,88 @@ export function useUpdateCoupon(options?: Mutation<api.Coupon, { id: number } & 
   return useChange(
     (token, { id, ...changes }) => api.updateCoupon(token, id, changes),
     { invalidate: () => [keys.coupons], success: "Cupón actualizado." },
+    options,
+  );
+}
+
+export function useSetBusinessPartner(id: string | number, options?: Mutation<api.BusinessDetail, number | null>) {
+  return useChange(
+    (token, partner) => api.setBusinessPartner(token, id, partner),
+    {
+      // The allies' pages count their businesses: the one it had and the one it has now
+      invalidate: () => [...businessKeys(id), ["partners"], ["partner"]],
+      success: (data) => (data.partner ? `${data.name} quedó como negocio de ${data.partner.name}.` : `${data.name} quedó sin aliado.`),
+    },
+    options,
+  );
+}
+
+export function useUpdatePartnerProgram(options?: Mutation<api.PartnerProgram, Partial<api.Deal>>) {
+  return useChange(
+    (token, changes) => api.updatePartnerProgram(token, changes),
+    {
+      // Every ally on the general deal shows it
+      invalidate: () => [keys.partnerProgram, ["partners"], ["partner"]],
+      success: "Comisión general actualizada. Vale desde el próximo pago de cada negocio.",
+    },
+    options,
+  );
+}
+
+/** What a change to an ally reads again: their page, the list, the picker of the businesses' page and Inicio. */
+const partnerKeys = (id: string | number): readonly (readonly unknown[])[] => [keys.partner(id), ["partners"], keys.partnerOptions, keys.dashboard];
+
+/** Its toast is the dialog's: green when the invitation went out, a warning when it did not. */
+export function useCreatePartner(options?: Mutation<api.PartnerInvited, api.PartnerInput>) {
+  return useChange(
+    (token, input) => api.createPartner(token, input),
+    { invalidate: () => [["partners"], keys.partnerOptions, keys.dashboard, ["accounts"]] },
+    options,
+  );
+}
+
+export function useUpdatePartner(id: string | number, options?: Mutation<api.PartnerDetail, api.PartnerChanges>) {
+  return useChange(
+    (token, changes) => api.updatePartner(token, id, changes),
+    // A business's page names its ally
+    { invalidate: () => [...partnerKeys(id), ["businesses"], ["business"], ["accounts"]], success: "Aliado actualizado." },
+    options,
+  );
+}
+
+/** Its toast is the caller's, as when making an ally. */
+export function useInvitePartner(id: string | number, options?: Mutation<api.PartnerInvited, void>) {
+  return useChange((token) => api.invitePartner(token, id), { invalidate: () => [keys.partner(id), ["partners"]] }, options);
+}
+
+export function usePayPartner(id: string | number, options?: Mutation<api.PartnerDetail, api.PayoutInput>) {
+  return useChange(
+    (token, input) => api.payPartner(token, id, input),
+    { invalidate: () => partnerKeys(id), success: "Pago registrado. El aliado ya lo ve en su panel." },
+    options,
+  );
+}
+
+export function useAddCommission(id: string | number, options?: Mutation<api.PartnerDetail, api.CommissionInput>) {
+  return useChange(
+    (token, input) => api.addCommission(token, id, input),
+    { invalidate: () => partnerKeys(id), success: "Comisión agregada: queda por cobrar con las demás." },
+    options,
+  );
+}
+
+export function useVoidCommission(id: string | number, options?: Mutation<api.PartnerDetail, { commission: number; reason: string }>) {
+  return useChange(
+    (token, { commission, reason }) => api.voidCommission(token, commission, reason),
+    { invalidate: () => partnerKeys(id), success: "Comisión anulada." },
+    options,
+  );
+}
+
+export function useUndoPayout(id: string | number, options?: Mutation<api.PartnerDetail, number>) {
+  return useChange(
+    (token, payout) => api.undoPayout(token, payout),
+    { invalidate: () => partnerKeys(id), success: "Pago deshecho: sus comisiones vuelven a estar por cobrar." },
     options,
   );
 }

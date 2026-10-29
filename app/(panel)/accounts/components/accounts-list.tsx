@@ -25,7 +25,14 @@ const TABS = [
   { value: "all", label: "Todas" },
   { value: "admin", label: "Equipo de Muatle" },
   { value: "business", label: "De los negocios" },
+  { value: "partner", label: "Aliados" },
 ];
+
+const ROLE_NAMES: Record<AccountRow["role"], string> = {
+  admin: "Equipo de Muatle",
+  partner: "Aliado",
+  business: "Negocio",
+};
 
 const ORDER_OPTIONS = [
   { value: "", label: "Más recientes" },
@@ -34,11 +41,11 @@ const ORDER_OPTIONS = [
   { value: "email", label: "Correo (A–Z)" },
 ];
 
-/** The chip of an account's role: the team or a business's. */
+/** The chip of an account's role: the team's, an ally's or a business's. */
 function RoleChip({ role }: { role: AccountRow["role"] }) {
   return (
     <Badge variant="outline" className={cn(CHIP_PLAIN, role === "admin" && "border-primary/40")}>
-      {role === "admin" ? "Equipo de Muatle" : "Negocio"}
+      {ROLE_NAMES[role]}
     </Badge>
   );
 }
@@ -114,7 +121,7 @@ function AccountsList() {
     page,
     page_size: size,
     search: search || undefined,
-    role: tab === "admin" || tab === "business" ? tab : undefined,
+    role: tab === "admin" || tab === "business" || tab === "partner" ? tab : undefined,
     active: active || undefined,
     ordering: order || undefined,
   });
@@ -126,7 +133,7 @@ function AccountsList() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Cuentas"
-        description="Quienes entran con un correo: los dueños y miembros de los negocios, y el equipo de Muatle que usa esta administración."
+        description="Quienes entran con un correo: los dueños y miembros de los negocios, los aliados, y el equipo de Muatle que usa esta administración."
         actions={
           <Button onClick={startCreating}>
             <UserPlus /> Nueva cuenta del equipo

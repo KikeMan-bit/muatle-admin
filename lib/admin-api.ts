@@ -20,8 +20,11 @@ export type AdminUser = {
   first_name: string;
   last_name: string;
   phone: string;
-  /** "admin" for Muatle's team, "business" for whoever signs in to a business's panel. */
-  role: "admin" | "business";
+  /**
+   * "admin" for Muatle's team, "partner" for an ally (their account is never a
+   * business's), "business" for whoever signs in to a business's panel.
+   */
+  role: "admin" | "partner" | "business";
   is_active: boolean;
   email_verified: boolean;
   has_password: boolean;
@@ -78,12 +81,26 @@ export type BusinessRow = {
   industry: string;
   is_food_business: boolean;
   owner: { name: string; email: string | null } | null;
+  /** The ally who brought it; null for one no ally brought. */
+  partner: BusinessPartner | null;
   /** Open branches and active members, counted. */
   branches: number | null;
   members: number | null;
   subscription: Subscription;
   created_at: string;
   deleted_at: string | null;
+};
+
+/** How a business came to be an ally's: signing up with their code, or set here. */
+export type ReferralSource = "signup" | "admin";
+
+/** The ally who brought a business, as its row names them. */
+export type BusinessPartner = {
+  id: number;
+  code: string;
+  name: string;
+  source: ReferralSource;
+  referred_at: string;
 };
 
 /** The subscription as the businesses' panel reads it, with this month's usage. */
@@ -185,6 +202,8 @@ export type Dashboard = {
     /** Bolivianos a month from the paid plans still running. */
     monthly_revenue: number;
   };
+  /** The allies still on, and what they all have to collect ("264.00"). */
+  partners: { active: number; pending: string };
   by_plan: { plan: string; name: string; count: number }[];
   ending_soon: BusinessRow[];
   locked: BusinessRow[];
@@ -226,6 +245,152 @@ export type Coupon = {
 /** What the team writes of a coupon; the code only when making it, and blank for one made up. */
 export type CouponInput = Partial<Omit<Coupon, "id" | "uses" | "created_at">>;
 
+/**
+ * A deal: the share of each payment ("20.00", from 0 to 100) and how many
+ * paid months of each business earn it; null, all of them, always.
+ */
+export type Deal = { percent: string; months: number | null };
+
+/** The general deal every ally without one of their own earns by (partners.Program). */
+export type PartnerProgram = Deal & { updated_at: string; updated_by: string | null };
+
+/** Where an ally gets paid, as they write it in their panel; every field may be empty. */
+export type PayoutDetails = { bank: string; account: string; holder: string; document: string; note: string };
+
+/** An ally (partners.Partner): someone outside Muatle who brings businesses and earns a share of what they pay. */
+export type Partner = {
+  id: number;
+  /** In capitals, as in their link and as businesses type it: "JUAN". */
+  code: string;
+  /** The link they share: /r/<code> in the panel, which keeps the code for the sign-up. */
+  link: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string;
+  /** What they earn by now: their own deal, or the general one. */
+  commission: Deal & { own: boolean };
+  is_active: boolean;
+  payout_details: PayoutDetails;
+  /** The QR of their account, for paying them by scanning it. */
+  payout_qr: string | null;
+  /** When they last changed where they get paid. */
+  payout_updated_at: string | null;
+  created_at: string;
+};
+
+/** An ally in the list, with what they brought and earned. */
+export type PartnerRow = Partner & {
+  /** For the team: "Amigo de la feria". */
+  note: string;
+  /** Still without a password: their invitation was not used. */
+  invitation_pending: boolean;
+  last_login: string | null;
+  /** The businesses they brought, and how many have a paid plan running now. */
+  businesses: number;
+  paying: number;
+  /** To collect and already paid, in bolivianos: "88.00". */
+  pending: string;
+  paid: string;
+};
+
+/** "trial" while it tries Muatle, "active" with a paid plan running, "expired" once it ended, "deleted" once its owner deleted it. */
+export type ReferralState = "trial" | "active" | "expired" | "deleted";
+
+/** A business an ally brought, with where it stands and what it earned them. */
+export type Referral = {
+  id: number;
+  business: string;
+  business_id: number;
+  country: string | null;
+  referred_at: string;
+  source: ReferralSource;
+  state: ReferralState;
+  plan: string;
+  plan_name: string;
+  ends_at: string | null;
+  /** Its paid months that earned the ally a commission, out of `months` (null: always). */
+  months_counted: number;
+  months: number | null;
+  earned: string;
+};
+
+export type CommissionStatus = "pending" | "paid" | "void";
+
+/** What an ally earned: a share of one payment ("payment"), or a sum the team wrote by hand ("manual"). */
+export type Commission = {
+  id: number;
+  created_at: string;
+  /** The business's name as it was; it outlives the business. */
+  business: string;
+  business_id: number | null;
+  kind: "payment" | "manual";
+  plan: string | null;
+  plan_name: string | null;
+  /** The business's paid months it counted; 0 for a sum by hand. */
+  months: number;
+  /** What it was worked out on: the part of the payment its months make. */
+  base: string;
+  percent: string | null;
+  amount: string;
+  status: CommissionStatus;
+  /** Why it was written by hand. */
+  note: string;
+  void_reason: string;
+  voided_at: string | null;
+  payout: number | null;
+  paid_on: string | null;
+  /** Who wrote it by hand; null for one a payment earned. */
+  created_by: string | null;
+};
+
+/** What Muatle paid an ally: the commissions they had to collect then, all at once. */
+export type Payout = {
+  id: number;
+  /** "2026-10-26". */
+  paid_on: string;
+  amount: string;
+  /** How it went: "Transferencia BNB". */
+  note: string;
+  /** How many commissions it took. */
+  commissions: number;
+  created_at: string;
+  created_by: string | null;
+};
+
+export type PartnerDetail = PartnerRow & {
+  referrals: Referral[];
+  commissions: Commission[];
+  payouts: Payout[];
+};
+
+/** An ally to pick as the one who brought a business. */
+export type PartnerOption = { id: number; code: string; name: string; is_active: boolean };
+
+/** What the team writes of a new ally: their code blank for one made from their name, their deal the general one unless `own_commission`. */
+export type PartnerInput = {
+  email: string;
+  first_name: string;
+  last_name?: string;
+  phone?: string;
+  code?: string;
+  own_commission?: boolean;
+  percent?: string;
+  months?: number | null;
+  note?: string;
+};
+
+export type PartnerChanges = Partial<Omit<PartnerInput, "email"> & { is_active: boolean }>;
+
+/** A payout: the day it was made, how, and which commissions (none: all they have to collect). */
+export type PayoutInput = { paid_on?: string; note?: string; commissions?: number[] };
+
+/** A sum for an ally written by hand, with why, and the business it is about if any. */
+export type CommissionInput = { amount: string; note: string; business?: number | null };
+
+/** Answers to making an ally, or sending their invitation again: whether the email went out. */
+export type PartnerInvited = PartnerDetail & { invitation_sent: boolean };
+
 export type BusinessListParams = {
   page?: number;
   page_size?: number;
@@ -234,6 +399,17 @@ export type BusinessListParams = {
   state?: string;
   country?: string;
   deleted?: string;
+  /** The ones the ally with this id brought. */
+  partner?: number;
+  ordering?: string;
+};
+
+export type PartnerListParams = {
+  page?: number;
+  page_size?: number;
+  search?: string;
+  /** "yes" or "no". */
+  active?: string;
   ordering?: string;
 };
 
@@ -336,3 +512,40 @@ export const createCoupon = (token: string, input: CouponInput) =>
 
 export const updateCoupon = (token: string, id: number, changes: CouponInput) =>
   apiRequest<Coupon>(`${ADMIN}/coupons/${id}/`, { method: "PATCH", body: changes, token });
+
+export const setBusinessPartner = (token: string, id: string | number, partner: number | null) =>
+  apiRequest<BusinessDetail>(`${ADMIN}/businesses/${id}/partner/`, { method: "POST", body: { partner }, token });
+
+export const getPartnerProgram = (token: string) => apiRequest<PartnerProgram>(`${ADMIN}/partner-program/`, { token });
+
+export const updatePartnerProgram = (token: string, changes: Partial<Deal>) =>
+  apiRequest<PartnerProgram>(`${ADMIN}/partner-program/`, { method: "PATCH", body: changes, token });
+
+export const listPartners = (token: string, params: PartnerListParams) =>
+  apiRequest<Paginated<PartnerRow>>(`${ADMIN}/partners/${queryString(params)}`, { token });
+
+export const listPartnerOptions = (token: string) => apiRequest<PartnerOption[]>(`${ADMIN}/partners/options/`, { token });
+
+export const getPartner = (token: string, id: string | number) =>
+  apiRequest<PartnerDetail>(`${ADMIN}/partners/${id}/`, { token });
+
+export const createPartner = (token: string, input: PartnerInput) =>
+  apiRequest<PartnerInvited>(`${ADMIN}/partners/`, { method: "POST", body: input, token });
+
+export const updatePartner = (token: string, id: string | number, changes: PartnerChanges) =>
+  apiRequest<PartnerDetail>(`${ADMIN}/partners/${id}/`, { method: "PATCH", body: changes, token });
+
+export const invitePartner = (token: string, id: string | number) =>
+  apiRequest<PartnerInvited>(`${ADMIN}/partners/${id}/invite/`, { method: "POST", body: {}, token });
+
+export const payPartner = (token: string, id: string | number, input: PayoutInput) =>
+  apiRequest<PartnerDetail>(`${ADMIN}/partners/${id}/payouts/`, { method: "POST", body: input, token });
+
+export const addCommission = (token: string, id: string | number, input: CommissionInput) =>
+  apiRequest<PartnerDetail>(`${ADMIN}/partners/${id}/commissions/`, { method: "POST", body: input, token });
+
+export const voidCommission = (token: string, commissionId: number, reason: string) =>
+  apiRequest<PartnerDetail>(`${ADMIN}/partner-commissions/${commissionId}/void/`, { method: "POST", body: { reason }, token });
+
+export const undoPayout = (token: string, payoutId: number) =>
+  apiRequest<PartnerDetail>(`${ADMIN}/partner-payouts/${payoutId}/`, { method: "DELETE", token });

@@ -155,7 +155,20 @@ function AccountDetail({ id }: { id: string }) {
         </div>
       </PageHeader>
 
-      {!account.has_password ? (
+      {account.role === "partner" ? (
+        <Alert variant="info">
+          <CircleAlert />
+          <AlertDescription>
+            <span>
+              Es la cuenta de un aliado: entra a su propio panel, nunca al de un negocio.{" "}
+              <Link href={`/partners?q=${encodeURIComponent(account.email)}`} className="font-medium underline underline-offset-2">
+                Ver su ficha en Aliados
+              </Link>
+              {account.has_password ? "." : ". Todavía no creó su contraseña: tiene la invitación pendiente."}
+            </span>
+          </AlertDescription>
+        </Alert>
+      ) : !account.has_password ? (
         <Alert variant="info">
           <CircleAlert />
           <AlertDescription>
@@ -202,7 +215,13 @@ function AccountDetail({ id }: { id: string }) {
 
       <section className="flex flex-col gap-3">
         <h2 className="text-base font-semibold">Negocios</h2>
-        <DataTable columns={membershipColumns} rows={account.memberships} rowKey={(row) => row.id} rowHref={(row) => `/businesses/${row.business.id}`} noun="negocios" emptyTitle="No está en ningún negocio" emptyMessage={account.role === "admin" ? "Es una cuenta del equipo de Muatle." : "Fue miembro de un negocio y la quitaron, o su negocio se eliminó."} />
+        <DataTable columns={membershipColumns} rows={account.memberships} rowKey={(row) => row.id} rowHref={(row) => `/businesses/${row.business.id}`} noun="negocios" emptyTitle="No está en ningún negocio" emptyMessage={
+            account.role === "admin"
+              ? "Es una cuenta del equipo de Muatle."
+              : account.role === "partner"
+                ? "Es la cuenta de un aliado: los negocios que trajo están en su ficha de Aliados."
+                : "Fue miembro de un negocio y la quitaron, o su negocio se eliminó."
+          } />
       </section>
 
       <section className="flex flex-col gap-3">

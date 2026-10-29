@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { CountryFlag } from "@/components/ui/country-flag";
 import { Select } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useBusinesses, useCountries } from "@/hooks/use-admin";
+import { useBusinesses, useCountries, usePartnerOptions } from "@/hooks/use-admin";
 import type { BusinessRow } from "@/lib/admin-api";
 import { countryName } from "@/lib/countries";
 import { planIds, planNames } from "@/lib/plans";
@@ -108,24 +108,28 @@ const columns: Column<BusinessRow>[] = [
 
 /** "Negocios": every business, with where its subscription stands. */
 function BusinessesList() {
-  // In the URL: open a business and come back, and the tab, search and page are as they were
-  const [view, setView] = useUrlState({ tab: "all", q: "", plan: "", country: "", order: "", page: 1, size: PAGE_SIZE });
-  const { tab, q: search, plan, country, order, page, size } = view;
+  // In the URL: open a business and come back, and the tab, search and page are as they were.
+  // `partner` comes from an ally's page: the businesses they brought
+  const [view, setView] = useUrlState({ tab: "all", q: "", plan: "", country: "", partner: "", order: "", page: 1, size: PAGE_SIZE });
+  const { tab, q: search, plan, country, partner, order, page, size } = view;
 
   const countries = useCountries();
+  const partners = usePartnerOptions({ enabled: !!partner });
+  const partnerShown = partners.data?.find((option) => String(option.id) === partner);
   const { data, isPending, isFetching, error, refetch } = useBusinesses({
     page,
     page_size: size,
     search: search || undefined,
     plan: plan || undefined,
     country: country || undefined,
+    partner: partner ? Number(partner) : undefined,
     state: tab === "running" || tab === "grace" || tab === "locked" ? tab : undefined,
     deleted: tab === "deleted" ? "yes" : "no",
     ordering: order || undefined,
   });
 
   const total = data?.count ?? 0;
-  const hasFilters = !!search || !!plan || !!country || !!order || tab !== "all";
+  const hasFilters = !!search || !!plan || !!country || !!partner || !!order || tab !== "all";
 
   return (
     <div className="flex flex-col gap-6">
@@ -172,8 +176,13 @@ function BusinessesList() {
               </option>
             ))}
           </Select>
+          {partner ? (
+            <Button variant="outline" size="sm" onClick={() => setView({ partner: "", page: 1 })} aria-label="Quitar el filtro por aliado">
+              Del aliado {partnerShown ? `${partnerShown.name} (${partnerShown.code})` : `#${partner}`} <X />
+            </Button>
+          ) : null}
           {hasFilters ? (
-            <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => setView({ tab: "all", q: "", plan: "", country: "", order: "", page: 1 })}>
+            <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => setView({ tab: "all", q: "", plan: "", country: "", partner: "", order: "", page: 1 })}>
               <X /> Limpiar
             </Button>
           ) : null}

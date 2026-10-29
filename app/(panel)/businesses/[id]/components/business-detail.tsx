@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { CircleAlert, ExternalLink, Pencil, RefreshCw, RotateCcw, Unlink, WalletCards } from "lucide-react";
 
 import { BackButton } from "@/components/back-button";
@@ -19,11 +20,13 @@ import type { BranchData, BusinessDetail as BusinessData, DeviceData, MemberData
 import { errorMessage } from "@/lib/api";
 import { countryName } from "@/lib/countries";
 import { currencyLabel } from "@/lib/currencies";
+import { referralSources } from "@/lib/partners";
 import { CHIP_PLAIN } from "@/lib/plans";
 import { rolesLabel } from "@/lib/roles";
 import { cn, daysLabel, formatBs, formatCount, formatDate, formatDateTime, formatLongDate } from "@/lib/utils";
 
 import { BusinessEditDialog } from "./business-edit-dialog";
+import { BusinessPartnerDialog } from "./business-partner-dialog";
 import { PlanDialog } from "./plan-dialog";
 
 // Where the businesses' panel lives, to open a branch's digital menu from here
@@ -62,6 +65,7 @@ function BusinessDetail({ id }: { id: string }) {
   const { data: business, isPending, error, refetch } = useBusiness(id);
   const [planOpen, setPlanOpen] = React.useState(false);
   const [editOpen, setEditOpen] = React.useState(false);
+  const [partnerOpen, setPartnerOpen] = React.useState(false);
   const [restoreOpen, setRestoreOpen] = React.useState(false);
   const restore = useRestoreBusiness(id);
 
@@ -262,6 +266,34 @@ function BusinessDetail({ id }: { id: string }) {
               {formatCount(business.counts.orders)}
               <span className="text-muted-foreground"> · {formatCount(business.counts.orders_last_30_days)} en 30 días</span>
             </Fact>
+            <div className="col-span-2 flex items-start justify-between gap-3 border-t border-border pt-3">
+              <Fact label="Aliado">
+                {business.partner ? (
+                  <span className="grid leading-tight">
+                    <Link href={`/partners/${business.partner.id}`} className="font-medium hover:underline">
+                      {business.partner.name} <span className="font-mono text-xs text-muted-foreground">{business.partner.code}</span>
+                    </Link>
+                    <span className="text-xs text-muted-foreground">
+                      {referralSources[business.partner.source]} · {formatDate(business.partner.referred_at)}
+                    </span>
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground">Ningún aliado</span>
+                )}
+              </Fact>
+              {deleted ? null : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="-mr-2 shrink-0"
+                  onClick={() => setPartnerOpen(true)}
+                  // The subscription's own "Cambiar" is on this page too
+                  aria-label={business.partner ? "Cambiar el aliado" : "Asignar un aliado"}
+                >
+                  {business.partner ? "Cambiar" : "Asignar"}
+                </Button>
+              )}
+            </div>
           </dl>
         </PanelCard>
       </div>
@@ -302,6 +334,7 @@ function BusinessDetail({ id }: { id: string }) {
 
       <PlanDialog key={`plan-${business.updated_at}`} business={business} open={planOpen} onOpenChange={setPlanOpen} />
       <BusinessEditDialog key={`edit-${business.updated_at}`} business={business} open={editOpen} onOpenChange={setEditOpen} />
+      {partnerOpen ? <BusinessPartnerDialog business={business} open onOpenChange={setPartnerOpen} /> : null}
       <ConfirmDialog
         open={restoreOpen}
         onOpenChange={setRestoreOpen}

@@ -1,4 +1,4 @@
-import { Building2, LayoutDashboard, Settings2, TicketPercent, Users, type LucideIcon } from "lucide-react";
+import { Building2, Handshake, LayoutDashboard, Settings2, TicketPercent, Users, type LucideIcon } from "lucide-react";
 
 export type NavItem = {
   /** User-facing label, in Spanish. */
@@ -17,6 +17,7 @@ export const navItems: NavItem[] = [
   { title: "Negocios", url: "/businesses", icon: Building2 },
   { title: "Cuentas", url: "/accounts", icon: Users },
   { title: "Cupones", url: "/coupons", icon: TicketPercent },
+  { title: "Aliados", url: "/partners", icon: Handshake },
   { title: "Parámetros", url: "/parameters", icon: Settings2 },
 ];
 

@@ -13,7 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useDashboard } from "@/hooks/use-admin";
 import type { BusinessRow, Dashboard as DashboardData } from "@/lib/admin-api";
 import { errorMessage } from "@/lib/api";
-import { cn, daysLabel, formatBs, formatCount, formatDate } from "@/lib/utils";
+import { cn, daysLabel, formatAmount, formatBs, formatCount, formatDate } from "@/lib/utils";
 
 const MONTHS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 
@@ -84,11 +84,28 @@ function Dashboard() {
         </PanelCard>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-5">
         <StatCard title="Órdenes este mes" hint="Órdenes no canceladas de todos los negocios desde el 1.º del mes." value={formatCount(counts?.orders_this_month)} loading={isPending} />
         <StatCard title="Cuentas activas" hint="Cuentas con correo que pueden iniciar sesión: dueños, miembros y el equipo." value={formatCount(counts?.accounts)} loading={isPending} />
         <StatCard title="Vigentes" hint="Negocios cuya prueba o plan aún no venció." value={formatCount(counts?.running)} loading={isPending} />
         <StatCard title="En días de gracia" hint="Vencidos hace menos de tres días: su panel todavía funciona." value={formatCount(counts?.grace)} loading={isPending} />
+        <StatCard
+          title="Comisiones por pagar"
+          hint="Lo que los aliados ganaron con los pagos de sus negocios y todavía no se les pagó. Se paga desde la ficha de cada aliado."
+          value={formatAmount(data?.partners.pending)}
+          detail={
+            data ? (
+              <>
+                {formatCount(data.partners.active)} {data.partners.active === 1 ? "aliado activo" : "aliados activos"} ·{" "}
+                <Link href="/partners?order=-pending_total" className="whitespace-nowrap hover:text-foreground hover:underline">
+                  Ver aliados
+                </Link>
+              </>
+            ) : undefined
+          }
+          loading={isPending}
+          className="col-span-2 xl:col-span-1"
+        />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">

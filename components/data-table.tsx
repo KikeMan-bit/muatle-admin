@@ -33,6 +33,11 @@ export type DataTableProps<T> = {
   noun?: string;
   emptyTitle?: string;
   emptyMessage?: string;
+  /**
+   * Each row as a card, shown instead of the table below `md`, for a list too
+   * wide for a phone. Left out, the table scrolls sideways there.
+   */
+  card?: (row: T) => React.ReactNode;
   /** Left out, the table is a plain list without a pager. */
   pagination?: {
     page: number;
@@ -61,6 +66,7 @@ function DataTable<T>({
   noun = "registros",
   emptyTitle,
   emptyMessage,
+  card,
   pagination,
 }: DataTableProps<T>) {
   const router = useRouter();
@@ -75,9 +81,53 @@ function DataTable<T>({
     else router.push(href);
   };
 
+  // The same failure and the same emptiness for the table and for the cards
+  const failed = error ? (
+    <EmptyBox icon={<CircleAlert className="size-5 text-red-600" />} title={`No se pudieron cargar los ${noun}`} message={errorMessage(error)}>
+      {onRetry ? (
+        <Button variant="outline" size="sm" onClick={onRetry}>
+          <RefreshCw /> Reintentar
+        </Button>
+      ) : null}
+      {/* The page comes from the URL: if the list shrank since, it no longer exists */}
+      {pagination && pagination.page > 1 ? (
+        <Button variant="ghost" size="sm" onClick={() => pagination.onPageChange(1)}>
+          Ir a la primera página
+        </Button>
+      ) : null}
+    </EmptyBox>
+  ) : null;
+  const empty = (
+    <EmptyBox icon={<Inbox className="size-5 text-muted-foreground" />} title={emptyTitle ?? `No hay ${noun}`} message={emptyMessage ?? "Prueba con otros filtros."} />
+  );
+
   return (
     <div className="flex flex-col gap-3">
-      <div className="overflow-hidden rounded-xl border border-border bg-card">
+      {card ? (
+        <div className="flex flex-col gap-2 md:hidden" aria-busy={isLoading || undefined}>
+          {isLoading && rows.length === 0 ? (
+            Array.from({ length: 3 }).map((_, i) => <Skeleton key={`sk-${i}`} className="h-24 w-full rounded-xl" />)
+          ) : failed || rows.length === 0 ? (
+            <div className="rounded-xl border border-border bg-card">{failed ?? empty}</div>
+          ) : (
+            <ul className="flex flex-col gap-2">
+              {rows.map((row) => {
+                const href = rowHref?.(row);
+                return (
+                  <li
+                    key={rowKey(row)}
+                    className={cn("rounded-xl border border-border bg-card p-3.5", isLoading && "opacity-60", href && "cursor-pointer hover:bg-muted/40")}
+                    onClick={href ? (e) => open(e, href) : undefined}
+                  >
+                    {card(row)}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      ) : null}
+      <div className={cn("overflow-hidden rounded-xl border border-border bg-card", card && "hidden md:block")}>
         <Table>
           <TableHeader className="bg-muted/50">
             <TableRow className="hover:bg-transparent">
@@ -99,36 +149,10 @@ function DataTable<T>({
                   ))}
                 </TableRow>
               ))
-            ) : error ? (
+            ) : failed || rows.length === 0 ? (
               <TableRow className="hover:bg-transparent">
                 <TableCell colSpan={colSpan} className="p-0">
-                  <EmptyBox
-                    icon={<CircleAlert className="size-5 text-red-600" />}
-                    title={`No se pudieron cargar los ${noun}`}
-                    message={errorMessage(error)}
-                  >
-                    {onRetry ? (
-                      <Button variant="outline" size="sm" onClick={onRetry}>
-                        <RefreshCw /> Reintentar
-                      </Button>
-                    ) : null}
-                    {/* The page comes from the URL: if the list shrank since, it no longer exists */}
-                    {pagination && pagination.page > 1 ? (
-                      <Button variant="ghost" size="sm" onClick={() => pagination.onPageChange(1)}>
-                        Ir a la primera página
-                      </Button>
-                    ) : null}
-                  </EmptyBox>
-                </TableCell>
-              </TableRow>
-            ) : rows.length === 0 ? (
-              <TableRow className="hover:bg-transparent">
-                <TableCell colSpan={colSpan} className="p-0">
-                  <EmptyBox
-                    icon={<Inbox className="size-5 text-muted-foreground" />}
-                    title={emptyTitle ?? `No hay ${noun}`}
-                    message={emptyMessage ?? "Prueba con otros filtros."}
-                  />
+                  {failed ?? empty}
                 </TableCell>
               </TableRow>
             ) : (
